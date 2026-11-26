@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=DM+Sans:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+        <style>
+            :root {
+                color-scheme: light;
+                --blush: #fbdde8;
+                --petal: #f8c8da;
+                --rose: #ee9dbb;
+                --berry: #9a3f66;
+                --cream: #fdeff4;
+                --ink: #6c3350;
+                --lid: #f7c1d5;
+                --y: #80f7e7;
+                --y-deep: #6377e6;
+                --y-light: #a9fbf7;
+                --card: rgba(253, 239, 244, 0.85);
+                --line: rgba(238, 157, 187, 0.75);
+                --shadow: 0 26px 50px -22px rgba(200, 90, 135, 0.45);
+                --display: "Fraunces", Georgia, serif;
+                --body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+                box-sizing: border-box;
+                padding-top: env(safe-area-inset-top, 0px);
+                padding-bottom: env(safe-area-inset-bottom, 0px);
+            }
+            html {
+                scroll-padding-top: env(safe-area-inset-top, 0px);
+            }
+            *,
+            *::before,
+            *::after {
+                box-sizing: inherit;
+            }
+            html,
+            body {
+                margin: 0;
+                min-height: 100%;
+            }
+            body {
+                background: var(--blush);
+                color: var(--#c85b86);
+                font-family: var(--body);
+                overflow-x: hidden;
+            }
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0 0 auto;
+                height: env(safe-area-inset-top, 0px);
+                z-index: 60;
+                background: var(--lid);
+                transition: background 1s ease 0.3s;
+            }
+            body.in::before {
+                background: var(--blush);
+            }
+
+            #screen {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: black;
+                color: white;
+                z-index: 9999;
+                justify-content: center;
+                align-items: center;
+                font-family: monospace;
+                font-size: 30px;
+                text-align: center;
+                padding: 1.5rem;
+            }
+
+            #screen.show {
+                display: flex;
+            }
+
+            #gate {
+                --r: clamp(40px, 8vmin, 80px);
+                --pull-x: 0px;
+                --pull-y: 0px;
+                --flip-y: 1;
+                --tension: 0;
+                position: fixed;
+                inset: 0;
+                z-index: 50;
+                cursor: default;
+                user-select: none;
+                -webkit-user-select: none;
+                overflow: hidden;
+                background: var(--lid);
+                opacity: 1;
+                transition:
+                    opacity 0.6s ease 0.55s,
+                    visibility 0s linear 1.15s;
+                -webkit-tap-highlight-color: transparent;
+            }
+            #gate.dragging {
+                cursor: grabbing;
+            }
+            #gate.open {
+                cursor: default;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+            }
+            #gate:focus-visible {
+                outline: 3px solid var(--berry);
+                outline-offset: -8px;
+            }
+            #gate.open .bow {
+                animation: bow-drop var(--drop-dur, 1.05s) var(--drop-ease, cubic-bezier(0.32, 0, 0.67, 0)) forwards;
+            }
+
+            .snow {
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                pointer-events: none;
+                overflow: hidden;
+                opacity: 0;
+                transition: opacity 0.9s ease 0.5s;
+            }
+
+            body.in .snow{
+                opacity: 1;
+            }
+
+            .flake {
+                position: absolute;
+                top: -12px;
+                border-radius: 50%;
+                background: radial-gradient(circle at 30% 30%, #ffffff, #c3fbff 50%, #acf2ff);
+                will-change: transform;
+                animation: snowfall var(--fall-dur, 9s) linear var(--fall-delay, 0s) infinite;
+            }
+
+            @keyframes snowfall {
+                0% {
+                    transform: translate3d(0,16px,0) rotate(0deg);
+                }
+                50% {
+                    transform: translate3d(var(--sway, 24px), 50vh, 0) rotate(180deg);
+                }
+                100% {
+                    transform: translate3d(calc(var(--sway, 24px) * -0.6), 100vh, 0) rotate(360deg);
+                }
+            }
+
+
+            .ribbon,
+            .bow > * {
+                will-change: transform, opacity;
+            }
+            #gate.open .ribbon {
+                transition:
+                    transform 1.6s cubic-bezier(0.22, 1, 0.36, 1),
+                    opacity 0.75s ease;
+            }
+
+            .ribbon {
+                position: absolute;
+                box-shadow: 0 8px 16px -8px rgba(150, 70, 100, 0.4);
+            }
+
+            .r-left,
+            .r-right {
+                top: calc(50vh + var(--pull-y));
+                height: var(--r);
+                transform: translateY(-50%);
+                background: linear-gradient(
+                    180deg,
+                    var(--y-deep),
+                    var(--y) 26%,
+                    var(--y-light) 50%,
+                    var(--y) 74%,
+                    var(--y-deep)
+                );
+            }
+            .r-left {
+                left: 0;
+                width: max(0px, calc(50vw + var(--pull-x)));
+            }
+            .r-right {
+                left: calc(50vw + var(--pull-x));
+                width: max(0px, calc(50vw - var(--pull-x)));
+            }
+
+            .r-top,
+            .r-bottom {
+                left: calc(50vw + var(--pull-x));
+                width: var(--r);
+                transform: translateX(-50%);
+                background: linear-gradient(
+                    90deg,
+                    var(--y-deep),
+                    var(--y) 26%,
+                    var(--y-light) 50%,
+                    var(--y) 74%,
+                    var(--y-deep)
+                );
+            }
+            .r-top {
+                top: 0;
+                height: max(0px, calc(50vh + var(--pull-y)));
+            }
+            .r-bottom {
+                top: calc(50vh + var(--pull-y));
+                height: max(0px, calc(50vh - var(--pull-y)));
+            }
+
+            #gate.open .r-left {
+                transform: translate(calc(-100vw - var(--pull-x)), -50%);
+                opacity: 0;
+            }
+            #gate.open .r-right {
+                transform: translate(calc(100vw - var(--pull-x)), -50%);
+                opacity: 0;
+            }
+            #gate.open .r-top {
+                transform: translate(-50%, calc(-100vh - var(--pull-y)));
+                opacity: 0;
+            }
+            #gate.open .r-bottom {
+                transform: translate(-50%, calc(100vh - var(--pull-y)));
+                opacity: 0;
+            }
+
+            .bow {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: 0;
+                height: 0;
+                z-index: 3;
+            }
+            @keyframes bow-drop {
+                0% {
+                    transform: translate(var(--start-x, 0px), var(--start-y, 0px)) rotate(0deg);
+                    opacity: 1;
+                    animation-timing-function: cubic-bezier(0.18, 0.9, 0.35, 1);
+                }
+                16% {
+                    transform: translate(
+                            calc(var(--start-x, 0px) + var(--drift-x, 0px) * 0.16),
+                            calc(var(--start-y, 0px) - 36px + var(--drift-y, 0px) * 0.16)
+                        )
+                        rotate(calc(var(--spin-dir, 1) * -12deg));
+                    opacity: 1;
+                    animation-timing-function: cubic-bezier(0.55, 0.05, 0.85, 0.25);
+                }
+                78% {
+                    transform: translate(
+                            calc(var(--start-x, 0px) + var(--drift-x, 0px) * 0.85),
+                            calc(var(--start-y, 0px) + 115vh + var(--drift-y, 0px) * 0.85)
+                        )
+                        rotate(calc(var(--spin-dir, 1) * -52deg));
+                    opacity: 0;
+                }
+                100% {
+                    transform: translate(
+                            calc(var(--start-x, 0px) + var(--drift-x, 0px)),
+                            calc(var(--start-y, 0px) + 115vh + var(--drift-y, 0px))
+                        )
+                        rotate(calc(var(--spin-dir, 1) * -85deg));
+                    opacity: 0;
+                }
+            }
+            .bow > * {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+            .loop {
+                width: calc(var(--r) * 2.4);
+                height: calc(var(--r) * 1.55);
+                border: calc(var(--r) * 0.5) solid var(--y);
+                border-radius: 50%;
+                box-shadow:
+                    0 4px 0 var(--y-deep),
+                    inset 0 4px 0 var(--y-deep),
+                    0 12px 18px -8px rgba(150, 70, 100, 0.4);
+            }
+            .loop.a {
+                transform-origin: right center;
+                transform: translate(-100%, -50%) rotate(calc(-20deg - var(--tension) * 7deg)) scaleY(var(--flip-y));
+            }
+            .loop.b {
+                transform-origin: left center;
+                transform: translate(0, -50%) rotate(calc(20deg + var(--tension) * 7deg)) scaleY(var(--flip-y));
+            }
+            .tail {
+                --tail-rot: 0deg;
+                --tail-stretch: 1;
+                width: calc(var(--r) * 0.85);
+                height: calc(var(--r) * 2.6);
+                transform-origin: top center;
+                background: linear-gradient(90deg, var(--y-deep), var(--y-light) 50%, var(--y-deep));
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 88%, 0 100%);
+                cursor: grab;
+                touch-action: none;
+            }
+            .tail:active {
+                cursor: grabbing;
+            }
+            .tail.a {
+                transform: translate(-50%, 0) scaleY(var(--flip-y)) rotate(calc(15deg + var(--tail-rot)))
+                    scaleY(var(--tail-stretch));
+            }
+            .tail.b {
+                transform: translate(-50%, 0) scaleY(var(--flip-y)) rotate(calc(-15deg + var(--tail-rot)))
+                    scaleY(var(--tail-stretch));
+            }
+            .knot {
+                width: calc(var(--r) * 1.15);
+                height: calc(var(--r) * 1.15);
+                border-radius: 32%;
+                transform: translate(-50%, -50%);
+                background: radial-gradient(circle at 35% 30%, var(--y-light), var(--y) 55%, var(--y-deep));
+                box-shadow: 0 8px 14px rgba(150, 70, 100, 0.35);
+            }
+
+            .hint {
+                position: fixed;
+                left: 50%;
+                bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+                transform: translateX(-50%);
+                z-index: 4;
+                margin: 0;
+                padding: 0.45rem 0.95rem;
+                border-radius: 999px;
+                background: rgba(253, 239, 244, 0.78);
+                border: 1.5px solid var(--line);
+                color: var(--berry);
+                font-size: 0.85rem;
+                font-weight: 500;
+                pointer-events: none;
+                white-space: nowrap;
+            }
+            @media (pointer: fine) {
+                .hint.mobile-only {
+                    display: none;
+                }
+            }
+            @media (pointer: coarse) {
+                .hint.desktop-only {
+                    display: none;
+                }
+                .ribbon,
+                .bow .tail {
+                    cursor: pointer;
+                }
+            }
+
+            .banner {
+                position: fixed;
+                inset: 0;
+                z-index: 0;
+                display: grid;
+                place-items: center;
+                text-align: center;
+                background-image: url("https://file.garden/awebXdBezs5NUFPb/lian/big_banner.jpg");
+                background-size: cover;
+                background-position: center;
+            }
+            main {
+                position: relative;
+                z-index: 1;
+                min-height: 100vh;
+                min-height: 100svh;
+                display: grid;
+                place-items: center;
+                padding: 4rem 1.25rem;
+            }
+            .card {
+                width: min(100%, 540px);
+                background: var(--card);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                border: 1.5px solid var(--line);
+                border-radius: 32px;
+                box-shadow: var(--shadow);
+                text-align: left;
+                opacity: 0;
+                transform: translateY(40px) scale(0.96);
+                transition:
+                    opacity 1s ease 0.4s,
+                    transform 1s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.4s;
+            }
+            body.in .card {
+                opacity: 1;
+                transform: none;
+                animation: float 6s ease-in-out 1.6s infinite;
+            }
+            @keyframes float {
+                50% {
+                    transform: translateY(-10px);
+                }
+            }
+
+            .cover {
+                height: clamp(150px, 30vw, 140px);
+                border-radius: 30px 30px 0 0;
+                display: grid;
+                place-items: center;
+                background-image: url("https://file.garden/awebXdBezs5NUFPb/lian/small_banner.jpg");
+                background-size: cover;
+                background-position: center;    
+            }
+            .cover span {
+                color: var(--berry);
+                opacity: 0.6;
+                font-size: 0.85rem;
+                border: 2px dashed rgba(154, 63, 102, 0.35);
+                padding: 0.35rem 0.9rem;
+                border-radius: 999px;
+            }
+            .head {
+                --a: clamp(88px, 23vw, 124px);
+                display: flex;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 0 1.4rem;
+            }
+            .avatar {
+                flex: none;
+                width: var(--a);
+                height: var(--a);
+                margin-top: calc(var(--a) / -2);
+                border-radius: 50%;
+                border: 5px solid var(--cream);
+                background: var(--petal);
+                display: grid;
+                place-items: center;
+                text-align: center;
+                color: var(--berry);
+                font-size: 0.72rem;
+                line-height: 1.35;
+                box-shadow: 0 0 0 2px var(--line);
+                overflow: hidden;
+            }
+            .avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            .who {
+                min-width: 0;
+                padding-top: 0.75rem;
+            }
+            .sticker {
+                position: absolute;
+                bottom: 12px;
+                right: 14px;
+                width: clamp(88px, 10vw, 136px);
+                height: auto;
+                object-fit: contain;
+                pointer-events: none;
+                z-index: 2;
+            }
+            h1 {
+                font-family: var(--display);
+                font-weight: 700;
+                font-size: clamp(1.4rem, 5vw, 1.8rem);
+                margin: 0;
+                color: #ac4a71;
+                letter-spacing: -0.01em;
+                line-height: 1.15;
+            }
+            .handle {
+                margin: 0.15rem 0 0;
+                color: #c85b86;
+                font-weight: 500;
+            }
+            .bio {
+                margin: 0;
+                color: #a81e55;
+                padding: 0.8rem 2.4rem 0;
+                line-height: 1.6;
+                font-size: 1rem;
+            }
+            .links {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.6rem;
+                padding: 1.2rem 2.2rem 1.6rem;
+            }
+            .links a {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                display: grid;
+                place-items: center;
+                text-decoration: none;
+                color: var(--berry);
+                border: 2px solid var(--line);
+                font-size: 1rem;
+                background: var(--cream);
+                transition:
+                    transform 0.25s,
+                    background 0.25s,
+                    border-color 0.25s;
+            }
+            .links a i {
+                pointer-events: none;
+            }
+            .links a:hover,
+            .links a:focus-visible {
+                transform: translateY(-4px) scale(1.08);
+                background: var(--petal);
+                outline: none;
+            }
+            .music {
+                position: fixed;
+                z-index: 5;
+                right: 1rem;
+                bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+                padding: 0.65rem 1.1rem;
+                border-radius: 999px;
+                border: 1.5px solid var(--line);
+                background: var(--card);
+                color: var(--berry);
+                font: 500 0.9rem var(--body);
+                cursor: pointer;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                opacity: 0;
+                transition:
+                    opacity 0.8s ease 1s,
+                    transform 0.2s;
+            }
+            body.in .music {
+                opacity: 1;
+            }
+            .music:hover {
+                transform: scale(1.05);
+            }
+            .music:focus-visible {
+                outline: 3px solid var(--rose);
+                outline-offset: 2px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="screen" role="dialog" aria-live="assertive">
+            <p id="message"></p>
+        </div>
+
+        <div id="gate" role="button" tabindex="0" aria-label="Open the gift to enter the site">
+            <div class="ribbon r-left"></div>
+            <div class="ribbon r-right"></div>
+            <div class="ribbon r-top"></div>
+            <div class="ribbon r-bottom"></div>
+            <div class="bow">
+                <div class="tail a"></div>
+                <div class="tail b"></div>
+                <div class="loop a"></div>
+                <div class="loop b"></div>
+                <div class="knot"></div>
+            </div>
+            <p class="hint desktop-only">Pull a ribbon tail briskly to untie</p>
+        </div>
+
+        <div class="banner"></div>
+        <div class="snow" aria-hidden="true"></div>
+
+        <main>
+            <section class="card">
+                <div class="cover"></div>
+                <div class="head">
+                    <div class="avatar">
+                        <img
+                            src="https://avatar-cyan.vercel.app/api/pfp/1537058034021564576/bigImage"
+                        />
+                    </div>
+                    <div class="who">
+                        <h1>lian</h1>
+                        <p class="handle">@scotrgirlinred</p>
+                    </div>
+                    <img class="sticker" src="https://file.garden/awebXdBezs5NUFPb/sticker.png" alt=""/>
+                </div>
+                <p class="bio">iela</p>
+                <div class="links">
+                    <a href="https://www.instagram.com/novahaxe/" target="_blank" aria-label="instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+
+                    <a href="https://open.spotify.com/user/31uz35f6u2cvoxox6qozafefmcde" target="_blank" aria-label="spotify">
+                        <i class="fa-brands fa-spotify"></i>
+                    </a>
+
+                    <a id="credits" href="#" aria-label="credits">
+                        <i class="fa-solid fa-star"></i>
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <button class="music" id="music" type="button" aria-pressed="false">Music: off</button>
+        <audio id="bgm" loop preload="auto"></audio>
+
+        <script>
+            const snowContainer = document.querySelector(".snow");
+            const FLAKECOUNT = 82;
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < FLAKECOUNT; i++) {
+                const flake = document.createElement("div");
+                flake.className = "flake";
+                flake.style.setProperty("--sway", Math.random() * 48 + "px");
+                flake.style.setProperty("--fall-delay", Math.random() * 9 + "s");
+                flake.style.setProperty("--fall-dur", Math.random() * 6 + 6 + "s");
+                flake.style.width = Math.random() * 7 + 3 + "px";
+                flake.style.height = Math.random() * 12 + 6 + "px";
+                flake.style.left = Math.random() * 100 + "vw";
+                fragment.appendChild(flake);
+            }
+            snowContainer.appendChild(fragment);
+            const credits = document.getElementById("credits");
+            const screen = document.getElementById("screen");
+            const message = document.getElementById("message");
+
+            const texts = [
+                "?",
+                "?.",
+                "?..",
+                "?..."
+            ];
+
+            if (credits && screen && message) {
+                credits.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    bgm.pause()
+
+                    screen.classList.add("show");
+
+                    let i = 0;
+
+                    function roll() {
+                        if (i < texts.length) {
+                            setTimeout(() => {
+                                message.textContent = "";
+                            }, 1200);
+                            message.textContent = texts[i];
+                            i++;
+
+                            setTimeout(roll, 1200);
+                        } else {
+                            setTimeout(() => {
+                                message.textContent = "";
+                        
+                                setTimeout(() => {
+                        
+                                    setInterval(() => {
+                                        const clone = document.createElement("div");
+                        
+                                        clone.textContent = "senko";
+                                        clone.style.position = "fixed";
+                                        clone.style.left = Math.random() * 90 + "vw";
+                                        clone.style.top = Math.random() * 90 + "vh";
+                                        clone.style.fontSize = "20px";
+                                        clone.style.color = "red";
+                                        clone.style.pointerEvents = "none";
+                                        clone.style.zIndex = "9999";
+                                        clone.style.opacity = Math.random() * 0.5 + 0.5;
+                                        clone.style.transform = "rotate(" + (Math.random() * 20 - 10) + "deg)";
+
+                                        setInterval(() => {
+                                            clone.style.opacity = parseFloat(clone.style.opacity) - 0.01;
+                                        }, 100);
+                        
+                                        document.body.appendChild(clone);
+                        
+                                    }, 100);
+
+                                    
+                        
+                                    setTimeout(() => {
+                                
+                                        setTimeout(() => {
+                                            clone.remove();
+                                        }, 2000);
+                                
+                                    }, 2000);
+                                }, 800);
+                            }, 500);
+                        }
+                    }
+
+                    roll();
+                });
+            }
+
+            var musicsrc = "https://file.garden/awebXdBezs5NUFPb/lian/godisawoman_cut.mp3"//"https://file.garden/awebXdBezs5NUFPb/playingwithruby_uncut.mp3";
+
+            var gate = document.getElementById("gate"),
+                bow = gate.querySelector(".bow"),
+                tails = gate.querySelectorAll(".bow .tail"),
+                ribbons = gate.querySelectorAll(".ribbon"),
+                bgm = document.getElementById("bgm"),
+                btn = document.getElementById("music"),
+                opened = false,
+                dragging = false,
+                activeTail = null,
+                pointerStartX = 0,
+                pointerStartY = 0,
+                pointerX = 0,
+                pointerY = 0,
+                lastPointerX = 0,
+                lastPointerY = 0,
+                lastMoveTime = 0,
+                vx = 0,
+                vy = 0,
+                speedPxMs = 0,
+                moved = false
+
+            var knotstiffness = 0.095;
+            var knotdamping = 0.78;
+            var tailstiffness = 0.16;
+            var taildamping = 0.75;
+            var stretchstiffness = 0.18;
+            var stretchdamping = 0.74;
+            var maxknotoffset = 85;
+
+            var TENSION_DECAY_PER_FRAME = 0.86;
+            var UNTIE_TENSION_THRESHOLD = 1.0;
+
+            var knothr = 0,
+                knotvr = 0,
+                knothrvelocity = 0,
+                knotvrvelocity = 0,
+                tailrotation = 0,
+                tailrotationvelocity = 0,
+                tailstretch = 1,
+                tailstretchvelocity = 0,
+                flipvr = 1,
+                tension = 0,
+                rafId = null,
+                lastFrameTime = performance.now();
+
+            if (musicsrc) bgm.src = musicsrc;
+
+            function setlabel() {
+                var on = !bgm.paused;
+                btn.textContent = on ? "Music: on" : "Music: off";
+                btn.setAttribute("aria-pressed", on);
+            }
+            function play() {
+                if (!musicsrc) return;
+                var p = bgm.play();
+                if (p && p.catch) p.catch(function () {});
+                setTimeout(setlabel, 100);
+            }
+            function clamp(val, min, max) {
+                return Math.max(min, Math.min(max, val));
+            }
+            function resist(delta, maxDist, stiffness) {
+                var sign = delta >= 0 ? 1 : -1;
+                var mag = Math.abs(delta);
+                var resisted = (mag * stiffness * 3.1) / (1 + (mag * stiffness * 3.1) / maxDist);
+                return sign * resisted;
+            }
+
+            function openGift(launchVx, launchVy) {
+                if (opened) return;
+                opened = true;
+                dragging = false;
+                activeTail = null;
+                gate.classList.remove("dragging");
+
+                var speed = Math.hypot(launchVx || 0, launchVy || 0);
+                var durationsec = clamp(1.05 - speed * 0.22, 0.58, 1.2);
+                var drifthr = clamp(knothr * 1.4 + (launchVx || 0) * 260, -420, 420);
+                var driftvr = clamp(knotvr * 0.7 + (launchVy || 0) * 160, -240, 280);
+                var spindirection = knothr + (launchVx || 0) * 100 >= 0 ? 1 : -1;
+
+                gate.style.setProperty("--start-x", knothr.toFixed(1) + "px");
+                gate.style.setProperty("--start-y", knotvr.toFixed(1) + "px");
+                gate.style.setProperty("--drift-x", drifthr.toFixed(1) + "px");
+                gate.style.setProperty("--drift-y", driftvr.toFixed(1) + "px");
+                gate.style.setProperty("--spin-dir", String(spindirection));
+                gate.style.setProperty("--drop-dur", durationsec.toFixed(2) + "s");
+
+                bow.style.transform = "";
+                gate.classList.add("open");
+                document.body.classList.add("in");
+                play();
+            }
+
+            function step(now) {
+                if (opened) {
+                    rafId = null;
+                    return;
+                }
+
+                var rawDt = (now - lastFrameTime) / 16.6667;
+                lastFrameTime = now;
+                var dt = clamp(rawDt, 0.25, 2.2);
+
+                if (!dragging || now - lastMoveTime > 45) {
+                    speedPxMs *= Math.pow(0.55, dt);
+                    if (speedPxMs < 0.005) speedPxMs = 0;
+                }
+
+                var moveTensionInput = dragging ? clamp(speedPxMs / 2.2, 0, 1.45) : 0;
+                tension = tension * Math.pow(TENSION_DECAY_PER_FRAME, dt) + moveTensionInput * 0.28 * dt;
+                tension = clamp(tension, 0, 1.2);
+
+                var targetknothr = 0;
+                var targetknotvr = 0;
+                var targettailrotation = 0;
+                var targetTailStretch = 1;
+
+                if (dragging && activeTail) {
+                    var dx = pointerX - pointerStartX;
+                    var dy = pointerY - pointerStartY;
+                    if (Math.hypot(dx, dy) > 8) moved = true;
+
+                    targetknothr = resist(dx * 0.52, maxknotoffset, 0.24);
+                    targetknotvr = resist(dy * 0.52, maxknotoffset, 0.24);
+
+                    var cx = window.innerWidth * 0.5 + knothr;
+                    var cy = window.innerHeight * 0.5 + knotvr;
+                    var fromKnotX = pointerX - cx;
+                    var fromKnotY = pointerY - cy;
+                    var distancefromknot = Math.hypot(fromKnotX, fromKnotY);
+
+                    if (distancefromknot > 2) {
+                        var desiredFlipY = fromKnotY < -28 ? -1 : 1;
+                        flipvr += (desiredFlipY - flipvr) * clamp(0.18 * dt, 0, 1);
+
+                        var effectiveY = flipvr < 0 ? -fromKnotY : fromKnotY;
+                        var rawAngle = (-Math.atan2(fromKnotX, Math.max(1, Math.abs(effectiveY))) * 180) / Math.PI;
+                        if (effectiveY < 0) {
+                            rawAngle = fromKnotX >= 0 ? -180 - rawAngle : 180 - rawAngle;
+                        }
+                        targettailrotation = clamp(rawAngle * 0.75, -68, 68);
+                    }
+
+                    targetTailStretch = clamp(1 + tension * 0.32, 1, 1.35);
+                } else {
+                    flipvr += (1 - flipvr) * clamp(0.14 * dt, 0, 1);
+                }
+
+                knothrvelocity = (knothrvelocity + (targetknothr - knothr) * knotstiffness * dt) * Math.pow(knotdamping, dt);
+                knotvrvelocity = (knotvrvelocity + (targetknotvr - knotvr) * knotstiffness * dt) * Math.pow(knotdamping, dt);
+                knothr += knothrvelocity * dt;
+                knotvr += knotvrvelocity * dt;
+
+                tailrotationvelocity = (tailrotationvelocity + (targettailrotation - tailrotation) * tailstiffness * dt) * Math.pow(taildamping, dt);
+                tailrotation = tailrotationvelocity;
+
+                tailstretchvelocity =
+                    (tailstretchvelocity + (targetTailStretch - tailstretch) * stretchstiffness * dt) *
+                    Math.pow(stretchdamping, dt);
+                tailstretch += tailstretchvelocity * dt;
+
+                gate.style.setProperty("--pull-x", knothr.toFixed(1) + "px");
+                gate.style.setProperty("--pull-y", knotvr.toFixed(1) + "px");
+                gate.style.setProperty("--flip-y", flipvr.toFixed(3));
+                gate.style.setProperty("--tension", clamp(tension, 0, 1).toFixed(3));
+                bow.style.transform = "translate(" + knothr.toFixed(1) + "px, " + knotvr.toFixed(1) + "px)";
+
+                tails.forEach(function (t) {
+                    if (t === activeTail) {
+                        t.style.setProperty("--tail-rot", tailrotation.toFixed(1) + "deg");
+                        t.style.setProperty("--tail-stretch", tailstretch.toFixed(3));
+                    } else {
+                        var counterrotation = clamp(knothr * 0.14, -22, 22);
+                        var substretch = 1 + clamp(tension * 0.14, 0, 0.14);
+                        t.style.setProperty("--tail-rot", counterrotation.toFixed(1) + "deg");
+                        t.style.setProperty("--tail-stretch", substretch.toFixed(3));
+                    }
+                });
+
+                if (dragging && tension >= UNTIE_TENSION_THRESHOLD) {
+                    openGift(vx, vy);
+                    rafId = null;
+                    return;
+                }
+
+                var settled =
+                    !dragging &&
+                    tension < 0.005 &&
+                    Math.abs(knothr) < 0.15 &&
+                    Math.abs(knotvr) < 0.15 &&
+                    Math.abs(knothrvelocity) < 0.15 &&
+                    Math.abs(knotvrvelocity) < 0.15 &&
+                    Math.abs(tailrotation) < 0.2 &&
+                    Math.abs(tailstretch - 1) < 0.004 &&
+                    Math.abs(flipvr - 1) < 0.005;
+
+                if (settled) {
+                    knothr = 0;
+                    knotvr = 0;
+                    knothrvelocity = 0;
+                    knotvrvelocity = 0;
+                    tailrotation = 0;
+                    tailstretch = 1;
+                    flipvr = 1;
+                    tension = 0;
+                    speedPxMs = 0;
+                    gate.style.setProperty("--pull-x", "0px");
+                    gate.style.setProperty("--pull-y", "0px");
+                    gate.style.setProperty("--flip-y", "1");
+                    gate.style.setProperty("--tension", "0");
+                    bow.style.transform = "";
+                    tails.forEach(function (t) {
+                        t.style.setProperty("--tail-rot", "0deg");
+                        t.style.setProperty("--tail-stretch", "1");
+                    });
+                }
+
+                rafId = requestAnimationFrame(step);
+            }
+
+            function startPhysicsLoop() {
+                if (rafId === null && !opened) {
+                    lastFrameTime = performance.now();
+                    rafId = requestAnimationFrame(step);
+                }
+            }
+
+            tails.forEach(function (tail) {
+                tail.addEventListener("pointerdown", function (e) {
+                    if (opened) return;
+                    e.stopPropagation();
+                    var now = performance.now();
+                    dragging = true;
+                    moved = false;
+                    activeTail = tail;
+                    pointerStartX = e.clientX;
+                    pointerStartY = e.clientY;
+                    pointerX = e.clientX;
+                    pointerY = e.clientY;
+                    lastPointerX = e.clientX;
+                    lastPointerY = e.clientY;
+                    lastMoveTime = now;
+                    vx = 0;
+                    vy = 0;
+                    speedPxMs = 0;
+                    gate.classList.add("dragging");
+                    if (tail.setPointerCapture) {
+                        try {
+                            tail.setPointerCapture(e.pointerId);
+                        } catch (_) {}
+                    }
+                    startPhysicsLoop();
+                });
+
+                tail.addEventListener("pointermove", function (e) {
+                    if (!dragging || opened || activeTail !== tail) return;
+                    var now = performance.now();
+                    var dtMs = Math.max(1, now - lastMoveTime);
+                    var stepDx = e.clientX - lastPointerX;
+                    var stepDy = e.clientY - lastPointerY;
+                    var stepDist = Math.hypot(stepDx, stepDy);
+
+                    vx = stepDx / dtMs;
+                    vy = stepDy / dtMs;
+                    var instSpeed = stepDist / dtMs;
+
+                    speedPxMs = speedPxMs * 0.45 + instSpeed * 0.55;
+
+                    lastPointerX = e.clientX;
+                    lastPointerY = e.clientY;
+                    lastMoveTime = now;
+                    pointerX = e.clientX;
+                    pointerY = e.clientY;
+                });
+
+                function taildrag() {
+                    if (!dragging || activeTail !== tail) return;
+                    dragging = false;
+                    activeTail = null;
+                    speedPxMs = 0;
+                    gate.classList.remove("dragging");
+                    knothrvelocity += vx * 8;
+                    knotvrvelocity += vy * 8;
+                    startPhysicsLoop();
+                }
+
+                tail.addEventListener("pointerup", taildrag);
+                tail.addEventListener("pointercancel", taildrag);
+
+                tail.addEventListener("click", function (e) {
+                    if (!isTouchDevice || moved) return;
+                    e.stopPropagation();
+                    openGift(0, 0);
+                });
+            });
+
+            ribbons.forEach(function (ribbon) {
+                ribbon.addEventListener("click", function (e) {
+                    if (!isTouchDevice || opened) return;
+                    e.stopPropagation();
+                    openGift(0, 0);
+                });
+            });
+
+            gate.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openGift(0, 0);
+                }
+            });
+
+            btn.addEventListener("click", function () {
+                if (bgm.paused) play();
+                else {
+                    bgm.pause();
+                    setlabel();
+                }
+            });
+
+            startPhysicsLoop();
+        </script>
+    </body>
+</html>
